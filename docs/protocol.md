@@ -56,7 +56,7 @@ A brief contains:
 - The acceptance criteria
 - The exact command the worker runs to hand off to the next phase when done
 
-See [writing-briefs.md](writing-briefs.md) for the full shape.
+See [writing-briefs.md](writing-briefs.md) for the full shape, and [verification-provenance-breakpoints.md](verification-provenance-breakpoints.md) for the optional sections a brief can carry when a phase benefits from them.
 
 ### 4. Every worker reads, updates, and hands off
 
@@ -91,20 +91,39 @@ A worker that hits a decision it cannot make from the brief alone does not proce
 
 This is slower in the short term and much faster in the long term, because you do not spend two phases unwinding a worker's wrong guess.
 
-## How it composes with MWP
+### 8. Recurring errors are debugging information about the brief, not the phase
 
-MWP already gives you:
+If the same kind of worker mistake appears in two or more phases, the fix does not go in the handoff doc or the acceptance criteria of the failing phase. The fix goes upstream: into the brief template, the protocol itself, or the reference material the briefs cite.
+
+Editing a phase's output to correct a recurring pattern is patching the binary. The source is the brief that produced the pattern. Fix the source and every future run is correct.
+
+This rule is the handoff-protocol analog of ICM's edit-source principle (Section 6.3 of the ICM paper). See [verification-provenance-breakpoints.md](verification-provenance-breakpoints.md) for how to surface these patterns before they compound.
+
+## How it composes with ICM
+
+ICM (the Interpretable Context Methodology: Van Clief & McDermott, 2026) already gives you:
 
 - Folder structure as orchestration logic
 - Layered context loading (L0 through L4)
 - One stage, one job
 - Plain text interface between stages
+- Every output as an edit surface
 
 The handoff protocol adds one thing: a sequencing contract for stages that run in **different sessions**, not just different folders.
 
-MWP says "each stage loads only the context it needs." The handoff protocol says "each stage loads that context from a fresh session, with no memory of the previous stage, and still ships."
+ICM says "each stage loads only the context it needs." The handoff protocol says "each stage loads that context from a fresh session, with no memory of the previous stage, and still ships."
 
-Together they form a complete system. MWP defines the spatial structure of the workspace. The handoff protocol defines the temporal structure of execution across sessions.
+Together they form a complete system. ICM defines the spatial structure of the workspace. The handoff protocol defines the temporal structure of execution across sessions.
+
+## Incremental re-dispatch
+
+A property the protocol gets for free, worth stating explicitly because it is easy to miss.
+
+Because the handoff doc records what each phase read (its Inputs) and what each phase produced (its output artifacts), it is an implicit dependency graph. This matches the multi-pass incremental compilation pattern ICM describes in Section 6.1 of the paper.
+
+Practical consequence: if phase 5 is wrong and you fix the phase-5 brief, you do not have to re-run phases 1 through 4. You re-dispatch phase 5, and if its output does not invalidate what phase 6 and 7 read, they stay valid. If it does, they get re-dispatched too.
+
+The rule: re-run only the phases whose Inputs changed, or whose upstream Inputs changed. The handoff doc tells you which those are, because the handoff doc records what each phase read.
 
 ## When to use this
 
@@ -121,12 +140,15 @@ Do not use it when:
 - The task requires continuous back-and-forth with a human (the human is the orchestrator, no automation possible)
 - The task is exploratory and the phases cannot be predicted in advance (write the plan first, then protocol)
 
+For the full list of places this protocol does not work, see the README's "Where this does not work" section.
+
 ## What this protocol buys you
 
 - **Resilience.** A crashed session, a compacted context, a moved file: none of these break the build. The next worker reads the doc and continues.
 - **Parallelism at the build level.** You can run phase three while reviewing phase two's output, because each phase is independent of the session that ran the previous one.
 - **Cost control.** Each phase is scoped, so the premium-tier cost is bounded to the phases that need it. Everything else runs on a cheaper tier.
 - **Auditability.** The handoff doc is a ledger. Every phase's decisions, outputs, and blockers are recorded in the one place. Post-mortem is reading one file.
+- **Incremental re-dispatch.** Fix one phase, re-run only that phase plus whatever depended on its output. See the section above.
 
 ## What it costs you
 
