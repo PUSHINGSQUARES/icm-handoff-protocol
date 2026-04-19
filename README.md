@@ -22,7 +22,7 @@ A concrete, copy-pasteable pattern for:
 ## What this is not
 
 - A framework. There is no runtime to install. This is markdown plus a convention.
-- A replacement for ICM. It builds on top. Read the canonical ICM repo first: https://github.com/RinDig/Interpretable-Context-Methodology-ICM-
+- A replacement for ICM. It builds on top. Read the canonical ICM repo first: https://github.com/RinDig/Interpreted-Context-Methdology
 - A real-time multi-agent system. Phases run sequentially. Each phase is one worker. Each worker is one job.
 
 ## Why it works
